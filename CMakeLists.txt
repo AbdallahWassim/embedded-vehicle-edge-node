@@ -21,3 +21,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 # Appliquer les flags stricts a notre executable
 target_compile_options(${PROJECT_NAME} PRIVATE ${STRICT_COMPILER_FLAGS})
+
+# Trouver la bibliothèque de threads du système (pthread sous Linux)
+find_package(Threads REQUIRED)
+
+# Lier la bibliothèque de threads à notre exécutable
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
