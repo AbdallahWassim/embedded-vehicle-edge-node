@@ -1,28 +1,30 @@
 #include <iostream>
 #include <thread>
-#include <chrono>
 #include "ThreadSafeQueue.hpp"
+#include "CanReceiver.hpp"
 
-// Création d'une queue partagée pour stocker des entiers (ex: Vitesse véhicule)
 ThreadSafeQueue<int> vehicleDataQueue;
 
 void vCanRxTask() {
-    int simulatedSpeed = 0;
+    CanReceiver canBus("vcan0");
+    struct can_frame frame;
+
     while (true) {
-        simulatedSpeed += 5;
-        if (simulatedSpeed > 150) simulatedSpeed = 0;
-
-        std::cout << "[CAN RX] Sending speed: " << simulatedSpeed << " km/h" << std::endl;
-        vehicleDataQueue.push(simulatedSpeed);
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        // La tâche se met en pause ici jusqu'à recevoir une trame CAN
+        if (canBus.readFrame(frame)) {
+            // On filtre : on ne s'intéresse qu'à la trame ID 0x100 (ex: Trame Moteur)
+            if (frame.can_id == 0x100) {
+                int speed = frame.data[0]; // On suppose que la donnée 0 est la vitesse
+                std::cout << "[CAN RX] Real Frame ID 0x100 received! Extracted speed: " << speed << " km/h" << std::endl;
+                vehicleDataQueue.push(speed);
+            }
+        }
     }
 }
 
 void vProcessingTask() {
     int receivedSpeed = 0;
     while (true) {
-        // Cette ligne bloque jusqu'à ce que la Queue reçoive quelque chose
         if (vehicleDataQueue.pop(receivedSpeed)) {
             std::cout << "[PROCESSING] Analyzing speed: " << receivedSpeed << " km/h - Status: ";
             if (receivedSpeed > 120) std::cout << "CRITICAL (Overspeed!)" << std::endl;
@@ -32,7 +34,7 @@ void vProcessingTask() {
 }
 
 int main() {
-    std::cout << "[SYSTEM] Booting Embedded Edge Node with ThreadSafe Communication..." << std::endl;
+    std::cout << "[SYSTEM] Booting Embedded Edge Node with SocketCAN..." << std::endl;
 
     std::thread canTask(vCanRxTask);
     std::thread procTask(vProcessingTask);
