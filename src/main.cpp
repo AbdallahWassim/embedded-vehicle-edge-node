@@ -2,6 +2,7 @@
 #include <thread>
 #include "ThreadSafeQueue.hpp"
 #include "CanReceiver.hpp"
+#include "DataFilter.hpp"
 
 ThreadSafeQueue<int> vehicleDataQueue;
 
@@ -32,20 +33,25 @@ void vProcessingTask() {
     int receivedSpeed = 0;
     int receivedVoltage = 0 ;
     int receivedCurrent = 0 ;
+
+    MovingAverageFilter speedFilter(5); // Filtre pour la vitesse (moyenne des 5 dernières valeurs)
     while (true) {
         if (vehicleDataQueue.pop(receivedSpeed)) {
-            std::cout << "[PROCESSING] Analyzing speed: " << receivedSpeed << " km/h - Status: ";
-            if (receivedSpeed > 120) std::cout << "CRITICAL (Overspeed!)" << std::endl;
+            int smoothedSpeed = speedFilter.process(receivedSpeed);
+            std::cout << "[PROCESSING] Analyzing speed: " << smoothedSpeed << " km/h - Status: ";
+            if (smoothedSpeed > 120) std::cout << "CRITICAL (Overspeed!)" << std::endl;
             else std::cout << "OK" << std::endl;
         }
         if (vehicleDataQueue.pop(receivedVoltage)) {
-            std::cout << "[PROCESSING] Analyzing voltage: " << receivedVoltage << " V - Status: ";
-            if (receivedVoltage < 11) std::cout << "WARNING (Low Voltage!)" << std::endl;
+            int smoothedVoltage = speedFilter.process(receivedVoltage);
+            std::cout << "[PROCESSING] Analyzing voltage: " << smoothedVoltage << " V - Status: ";
+            if (smoothedVoltage < 11) std::cout << "WARNING (Low Voltage!)" << std::endl;
             else std::cout << "OK" << std::endl;
         }
         if (vehicleDataQueue.pop(receivedCurrent)) {
-            std::cout << "[PROCESSING] Analyzing current: " << receivedCurrent << " A - Status: ";
-            if (receivedCurrent > 50) std::cout << "WARNING (High Current!)" << std::endl;
+            int smoothedCurrent = speedFilter.process(receivedCurrent);
+            std::cout << "[PROCESSING] Analyzing current: " << smoothedCurrent << " A - Status: ";
+            if (smoothedCurrent > 50) std::cout << "WARNING (High Current!)" << std::endl;
             else std::cout << "OK" << std::endl;
         }
     }
