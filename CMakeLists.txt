@@ -27,3 +27,30 @@ find_package(Threads REQUIRED)
 
 # Lier la bibliothèque de threads à notre exécutable
 target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
+
+# ==========================================
+# CONFIGURATION DES TESTS UNITAIRES (GTEST)
+# ==========================================
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+# Intégrer GTest au projet
+FetchContent_MakeAvailable(googletest)
+
+# Activer les tests dans CMake
+enable_testing()
+
+# Créer un nouvel exécutable dédié uniquement aux tests
+add_executable(UnitTests tests/test_filter.cpp)
+
+# Indiquer où trouver nos fichiers .hpp
+target_include_directories(UnitTests PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+# Lier l'exécutable de test avec la librairie GTest
+target_link_libraries(UnitTests PRIVATE gtest_main)
+
+# Permettre à CMake de découvrir et lister les tests
+include(GoogleTest)
+gtest_discover_tests(UnitTests)
